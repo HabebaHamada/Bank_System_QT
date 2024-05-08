@@ -30,6 +30,7 @@ public slots:
     void get(QString path);
     void post(QString path, QByteArray data);
     void put(QString path, QByteArray data);
+    void Delete(QString path, QByteArray data);
     /*Log in function*/
     void Log_in(QByteArray User_name ,QByteArray pass,QByteArray authority);
     void View_Account_Balance(QByteArray Account_Number);
@@ -40,6 +41,7 @@ public slots:
     void View_Bank_DataBase();
     void Create_User(QString User_Data);
     void Update_User(QString Accountnumber,QString User_Data);
+    void Delete_User(QString Accountnumber);
 
 private:
     QTcpSocket *socket;

@@ -195,3 +195,19 @@ void Client::Update_User(QString Accountnumber,QString User_Data)
     post("http://192.168.1.7:22/postupdateuser",jsonData);
 
 }
+
+void Client::Delete_User(QString Accountnumber)
+{
+    qDebug()<<"Delete User Function";
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["Accountnumber"] =  Accountnumber;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+
+    Delete("http://192.168.1.7:22/deleteuser",jsonData);
+}

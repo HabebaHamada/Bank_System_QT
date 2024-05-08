@@ -158,3 +158,31 @@ void Client::put(QString path, QByteArray data)
     }
    // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
 }
+
+void Client::Delete(QString path, QByteArray data)
+{
+    if (socket->waitForConnected()) {
+        // Construct the request headers
+        QString requestHeaders = "DELETE " + path + " HTTP/1.1\r\n"
+                                                  //  "Host: " + serverAddress + "\r\n"
+                                                  "Content-Type: application/json\r\n"
+                                                  "Content-Length: " + QString::number(data.size()) + "\r\n"
+                                                                  //  "Connection: close\r\n"
+                                                                  "\r\n";
+
+        // Combine the request headers and data
+        QByteArray requestData = requestHeaders.toUtf8() + data;
+
+        // Send the request
+        socket->write(requestData);
+
+        // Wait for the response
+        if (socket->waitForBytesWritten() && socket->waitForReadyRead()) {
+            // Read the response
+            // QByteArray responseData = socket->readAll();
+            // qDebug() << "Response: " << responseData;
+        }
+    }
+    // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
+
+}
