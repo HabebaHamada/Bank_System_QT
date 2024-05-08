@@ -106,6 +106,13 @@ void MyServer::ReadRequest()
         response+="Hello client this is a PUT request";
         socket->write(response);
     }
+    else if(requeststring.startsWith("DELETE"))
+    {
+        if(requeststring.contains("/deleteuser"))
+        {
+            processDeleteRequestdeleteuser(socket,requestData,userTable);
+        }
+    }
 
 }
 
@@ -801,18 +808,12 @@ void MyServer::processPostRequestcreateuser(QTcpSocket* socket, const QByteArray
     return;
 }
 
-void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray& requestData,QJsonObject& database)
+void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray& requestData, QJsonObject& database)
 {
     qDebug() << "processPostRequestupdateuser";
 
-    QByteArray response;
-
     if (!clientmap.contains(socket)) {
-        response = "HTTP/1.0 200 OK\r\n\r\n";
-        response += "Not Logged in Before, Please Log in First";
-        socket->write(response);
-        socket->flush();
-        socket->waitForBytesWritten();
+        sendResponse(socket, "Not Logged in Before, Please Log in First");
         return;
     }
 
@@ -820,11 +821,7 @@ void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray
     qDebug() << autho;
 
     if (autho != "admin") {
-        response = "HTTP/1.0 200 OK\r\n\r\n";
-        response += "Not Authorized";
-        socket->write(response);
-        socket->flush();
-        socket->waitForBytesWritten();
+        sendResponse(socket, "Not Authorized");
         return;
     }
 
@@ -846,5 +843,148 @@ void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray
     qDebug() << "Password:" << jsonObject["password"].toString();
     qDebug() << "AccountNumber:" << jsonObject["Accountnumber"].toString();
 
+    QString accountNumber = jsonObject["Accountnumber"].toString();
+    QString username = jsonObject["username"].toString();
+    QString password = jsonObject["password"].toString();
+
+    QFile databaseFile("DataBase.json");
+    if (!databaseFile.open(QIODevice::ReadWrite)) {
+        qDebug() << "Failed to open database file";
+        return;
+    }
+
+    QByteArray databaseData = databaseFile.readAll();
+    databaseFile.close();
+
+    QJsonDocument databaseDoc = QJsonDocument::fromJson(databaseData);
+    if (!databaseDoc.isObject()) {
+        qDebug() << "Invalid database file format";
+        return;
+    }
+
+    QJsonObject databaseObject = databaseDoc.object();
+    QJsonArray dataArray = databaseObject.value("users").toArray();
+
+    bool updateDone = false;
+
+    for (QJsonValueRef valueRef : dataArray) {
+        QJsonObject dataObject = valueRef.toObject();
+        QString dataAccountNum = dataObject.value("Accountnumber").toString();
+
+        if (dataAccountNum == accountNumber && dataObject["authority"] == "standard") {
+            qDebug() << "Data found";   // Data found in the database
+            if (!username.isEmpty())
+                dataObject["username"] = username;
+            if (!password.isEmpty())
+                dataObject["password"] = password;
+
+            sendResponse(socket, "Update is done");
+            qDebug() << "New update is " << dataObject["username"] << dataObject["password"];
+            updateDone = true;
+            break;
+        }
+    }
+
+    if (!updateDone) {
+        qDebug() << "Update cannot be done in the database";
+        sendResponse(socket, "Update cannot be done in the database");
+    }
+}
+
+void MyServer::sendResponse(QTcpSocket* socket, const QString& responseMessage)
+{
+    QByteArray response = "HTTP/1.0 200 OK\r\n\r\n" + responseMessage.toUtf8();
+    socket->write(response);
+    socket->flush();
+    socket->waitForBytesWritten();
+}
+
+void MyServer::processDeleteRequestdeleteuser(QTcpSocket* socket, const QByteArray& requestData,QJsonObject& database)
+{
+    qDebug() << "processDeleteRequestdeleteuser";
+
+    if (!clientmap.contains(socket)) {
+        sendResponse(socket, "Not Logged in Before, Please Log in First");
+        return;
+    }
+
+    QString autho = clientmap.value(socket).authority;
+    qDebug() << autho;
+
+    if (autho != "admin") {
+        sendResponse(socket, "Not Authorized");
+        return;
+    }
+
+    // Extract the JSON data from the request
+    QByteArray jsonBytes = requestData.mid(requestData.indexOf('{'));
+
+    // Parse the JSON data
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonBytes);
+    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
+        qDebug() << "Invalid JSON data";
+        return;
+    }
+
+    QJsonObject jsonObject = jsonDoc.object();
+
+    // Process the jsonObject as needed
+    qDebug() << "Received DELETE request with data:";
+    qDebug() << "AccountNumber:" << jsonObject["Accountnumber"].toString();
+
+    QString accountNumber = jsonObject["Accountnumber"].toString();
+
+    QFile databaseFile("DataBase.json");
+    if (!databaseFile.open(QIODevice::ReadWrite)) {
+        qDebug() << "Failed to open database file";
+        return;
+    }
+
+    QByteArray databaseData = databaseFile.readAll();
+    databaseFile.close();
+
+    QJsonDocument databaseDoc = QJsonDocument::fromJson(databaseData);
+    if (!databaseDoc.isObject()) {
+        qDebug() << "Invalid database file format";
+        return;
+    }
+
+    QJsonObject databaseObject = databaseDoc.object();
+    QJsonArray dataArray = databaseObject.value("users").toArray();
+
+    bool DeleteDone = false;
+
+    // Find and remove the user with the specified account number
+    for (int i = 0; i < dataArray.size(); ++i) {
+        QJsonObject userObject = dataArray[i].toObject();
+        if (userObject["Accountnumber"].toString() == accountNumber && userObject["authority"] == "standard") {
+            qDebug() << "Data found";
+            dataArray.removeAt(i);
+            // Update the user array in the database object
+            databaseObject["users"] = dataArray;
+
+            // Convert the updated database object back to JSON
+            QJsonDocument updatedJsonDocument(databaseObject);
+            QByteArray updatedJsonData = updatedJsonDocument.toJson();
+
+            // Write the updated JSON data back to the file
+            if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+                qDebug() << "Failed to open file for writing.";
+                return;
+            }
+
+            databaseFile.write(updatedJsonData);
+            databaseFile.close();
+            sendResponse(socket, "Delete is done");
+            DeleteDone = true;
+            break;
+        }
+    }
+
+
+    if (!DeleteDone) {
+        qDebug() << "Delete cannot be done in the database";
+        sendResponse(socket, "Delete cannot be done in the database");
+    }
 
 }

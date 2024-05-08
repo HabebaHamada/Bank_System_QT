@@ -26,6 +26,7 @@ private slots:
     void newConnection();
     void ReadRequest();
 public:
+    /*Log in Function*/
     void processPostRequestlogin(QTcpSocket* socket, const QByteArray& requestData);
     bool searchInDatabase(const QString& name, QString& Password, QString& authority);
 
@@ -53,6 +54,12 @@ public:
 
     /*Update User*/
     void processPostRequestupdateuser(QTcpSocket* socket, const QByteArray& requestData,QJsonObject& database);
+
+    /*send Response*/
+    void sendResponse(QTcpSocket* socket, const QString& responseMessage);
+
+    /*Delete User*/
+    void processDeleteRequestdeleteuser(QTcpSocket* socket, const QByteArray& requestData,QJsonObject& database);
 
 private:
     QTcpServer server;
