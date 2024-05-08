@@ -1,0 +1,6 @@
+#ifndef BANK_SYSTEM_REQUESTS_H
+#define BANK_SYSTEM_REQUESTS_H
+#include <QString>
+
+
+#endif // BANK_SYSTEM_REQUESTS_H
