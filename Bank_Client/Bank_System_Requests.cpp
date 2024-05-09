@@ -1,19 +1,17 @@
 #include"Bank_System_Requests.h"
-#include"client.h"
-#include"QJsonDocument"
 
 
 
-void Client::Log_in(QByteArray User_name ,QByteArray pass,QByteArray authority)
+void Client::Log_in(QString User_name ,QString pass,QString authority)
 {
 
     qDebug()<<"Log in Function";
 
     // Create a JSON object
     QJsonObject jsonObject;
-    jsonObject["username"] =  QString::fromUtf8(User_name);
-    jsonObject["password"] =  QString::fromUtf8(pass);
-    jsonObject["authority"] = QString::fromUtf8(authority);
+    jsonObject["username"] =  User_name;
+    jsonObject["password"] =  pass;
+    jsonObject["authority"] = authority;
     QJsonDocument jsonDocument(jsonObject);
 
     // Convert the JSON object to a QByteArray
@@ -46,13 +44,13 @@ void Client::Get_Account_Number()
     get("http://192.168.1.7:22/getaccountnumber");
 }
 
-void Client::Get_Account_Number(QByteArray username)
+void Client::Get_Account_Number(QString username)
 {
     qDebug()<<"Get Account Number Function";
 
     // Create a JSON object
     QJsonObject jsonObject;
-    jsonObject["username"] =  QString::fromUtf8(username);
+    jsonObject["username"] =  username;
     QJsonDocument jsonDocument(jsonObject);
 
     // Convert the JSON object to a QByteArray

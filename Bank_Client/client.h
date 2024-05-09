@@ -7,6 +7,7 @@
 #include <QNetworkRequest>
 #include <QJsonObject>
 #include <QJsonDocument>
+
 class Client : public QObject
 {
     Q_OBJECT
@@ -32,10 +33,10 @@ public slots:
     void put(QString path, QByteArray data);
     void Delete(QString path, QByteArray data);
     /*Log in function*/
-    void Log_in(QByteArray User_name ,QByteArray pass,QByteArray authority);
+    void Log_in(QString User_name ,QString pass,QString authority);
     void View_Account_Balance(QByteArray Account_Number);
     void Get_Account_Number();
-    void Get_Account_Number(QByteArray username);
+    void Get_Account_Number(QString username);
     void Make_Transaction(QByteArray accountnumber,int32_t transactionamount);
     void Transfer_Amount(QByteArray fromaccountnumber,QByteArray toaccountnumber,int32_t transactionamount);
     void View_Bank_DataBase();
