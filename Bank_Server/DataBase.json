@@ -1,0 +1,31 @@
+{
+    "users": [
+        {
+            "Accountnumber": "A00",
+            "Age": "20",
+            "authority": "admin",
+            "balance": 1000,
+            "fullname": "Ahmed zaed",
+            "password": "30",
+            "username": "Ahmed"
+        },
+        {
+            "Accountnumber": "A01",
+            "Age": "24",
+            "authority": "standard",
+            "balance": 1560,
+            "fullname": "Mohammed hassan",
+            "password": "15109",
+            "username": "Mohammed"
+        },
+        {
+            "Accountnumber": "A02",
+            "Age": "23",
+            "authority": "standard",
+            "balance": 2000,
+            "fullname": "Habeba Hamada",
+            "password": "822000",
+            "username": "Habeba"
+        }
+    ]
+}
