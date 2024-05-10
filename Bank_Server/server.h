@@ -11,10 +11,11 @@
 #include <QFile>
 #include <QMap>
 #include <QHostAddress>
+#include <QThread>
 
 #include"DataBase.h"
 
-class MyServer : public QObject
+class MyServer : public QTcpServer
 {
     Q_OBJECT
 public:
@@ -23,7 +24,7 @@ public:
 signals:
 
 private slots:
-    void newConnection();
+    //void newConnection();
     void ReadRequest();
 public:
     /*Log in Function*/
@@ -64,7 +65,8 @@ public:
 private:
     QTcpServer server;
 
-
+protected:
+    void incomingConnection(qintptr handle) override;
 };
 
 #endif

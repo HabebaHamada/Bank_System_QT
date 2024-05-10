@@ -1,5 +1,7 @@
 #include "server.h"
 #include"DataBase.h"
+#include"thread.h"
+
 struct ClientData
 {
     QString name;
@@ -10,7 +12,7 @@ QByteArray Data_Base;
 QJsonObject userTable;
 QMap<QTcpSocket *,ClientData> clientmap;
 
-MyServer::MyServer(QObject *parent) :
+/*MyServer::MyServer(QObject *parent) :
     QObject(parent)
 {
     Data_Base=Create_DataBase(userTable);
@@ -48,7 +50,40 @@ void MyServer::newConnection()
 
     //socket->close();
 }
+*/
+MyServer::MyServer(QObject *parent)
+{
+    //connect(&server, &QTcpServer::newConnection, this, &Server::newConnection);
+    Data_Base=Create_DataBase(userTable);
 
+
+    if(!listen(QHostAddress::Any, 22))
+    {
+        qDebug() << "Server could not start!";
+    }
+    else
+    {
+        qDebug() << "Server started!";
+    }
+}
+
+void MyServer::incomingConnection(qintptr socketDescriptor) {
+
+   // qDebug() << socketDescriptor << " Connecting...";
+    Thread *worker = new Thread(socketDescriptor);
+    QThread* thread = new QThread;
+
+    worker->moveToThread(thread);
+
+    QTcpSocket *clientSocket = new QTcpSocket(this);
+    clientSocket->setSocketDescriptor(socketDescriptor);
+
+    connect(clientSocket, &QTcpSocket::readyRead, this, &MyServer::ReadRequest);
+    connect(clientSocket, &QTcpSocket::disconnected, clientSocket, &QTcpSocket::deleteLater);
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+
+    thread->start();
+}
 void MyServer::ReadRequest()
 {
 
@@ -61,10 +96,6 @@ void MyServer::ReadRequest()
 
     if(requeststring.startsWith("GET"))
     {
-        // Send a response to the client
-       /* QByteArray response = "HTTP/1.0 200 OK\r\n\r\n";
-        response+="Hello client this is a GET request";
-        socket->write(response);*/
         if(requeststring.contains("/getaccountnumber")){
             processgetRequestgetaccountnumber(socket);
         }
@@ -101,7 +132,6 @@ void MyServer::ReadRequest()
     }
     else if(requeststring.startsWith("PUT"))
     {
-        // Send a response to the client
         QByteArray response = "HTTP/1.0 200 OK\r\n\r\n";
         response+="Hello client this is a PUT request";
         socket->write(response);
