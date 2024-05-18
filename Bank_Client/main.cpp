@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "client.h"
-#include "Bank_System_Requests.h"
 
 using namespace std;
 
@@ -22,14 +21,19 @@ void printHelp() {
                " Update New User<userdate> \n"
                " Delete New User<userdate> \n";
 }
-
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     QCoreApplication a(argc, argv);
 
     Client client;
-    client.connectToHost("192.168.1.7", 22);
 
-    bool isLoggedIn = false;
+  //  client.Log_in("Ahmed","30","admin");
+
+    //client.Update_User("A02","username:Mona");
+ //   client.View_Bank_DataBase();
+   // client.View_Account_Balance("A02");
+
+     bool isLoggedIn = false;
     QString role;
     QTextStream input(stdin);
     QTextStream output(stdout);
@@ -84,5 +88,7 @@ int main(int argc, char *argv[]) {
     }
 
     qInfo() << "Banking System is Exiting now...";
+
+
     return a.exec();
 }

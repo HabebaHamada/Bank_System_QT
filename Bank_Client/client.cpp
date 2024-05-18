@@ -1,188 +1,278 @@
 #include "client.h"
-#include <QObject>
-Client::Client() {
 
-    socket = new QTcpSocket;
-    connect(socket,&QAbstractSocket::connected,this,&Client::Connected);
-    connect(socket,&QAbstractSocket::disconnected,this,&Client::disconnected);
-    connect(socket,&QAbstractSocket::hostFound,this,&Client::hostFound);
-    connect(socket,&QAbstractSocket::errorOccurred,this,&Client::errorOccurred);
-    connect(socket,&QAbstractSocket::stateChanged,this,&Client::stateChanged);
-    connect(socket,&QAbstractSocket::readyRead,this,&Client::readyRead);
+Client::Client():activerequest(nullptr) {
+    // Constructor implementation
+    socket.connectToHost("192.168.1.8", 22);
+}
+
+void Client::setHttpRequestSender(HttpRequestSender* sender)
+{
+    activerequest = sender;
+
+    activerequest->SetSocket(&socket); // to set the socket of the request
+}
+
+void Client::Log_in(QString User_name ,QString pass,QString authority)
+{
+    PostRequestSender* loginRequest = new PostRequestSender();
+
+    setHttpRequestSender(loginRequest);
+
+    qDebug()<<"Log in Function";
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["username"] =  User_name;
+    jsonObject["password"] =  pass;
+    jsonObject["authority"] = authority;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    loginRequest->sendRequest("post","http://192.168.1.8:22/postlogin",jsonData);
+
+    delete loginRequest;
 
 }
 
-Client:: ~Client()
+void Client::View_Account_Balance(QByteArray Account_Number)
 {
-    delete socket;
-}
-void Client::connectToHost(QString hostname, quint16 port)
-{
-    if(socket->isOpen())    disconnect();
-    qInfo() << "Trying to connect to " << hostname << " on port " << port;
-    socket->connectToHost(hostname, port);
-}
+    qDebug()<<"View Account Balance Function";
 
-void Client::Connected()
-{
-    qInfo() << "Connected to Host";
+    PostRequestSender* viewBalanceRequest = new PostRequestSender();
 
-   // QByteArray data;
-   // data.append("Hello server , its me the client");
-    //data.append("GET / HTTP/1.1\r\n");
-    //data.append("Host: mshmae.pythonanywhere.com\r\n");
-    // data.append("Connection: Close \r\n");
-    //data.append("\r\n");
+    setHttpRequestSender(viewBalanceRequest);
 
-   // socket->write(data);
-    //socket->flush();
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["Accountnumber"] =  QString::fromUtf8(Account_Number);
+    QJsonDocument jsonDocument(jsonObject);
 
-    //socket->waitForBytesWritten(3000);
-    //socket->close();
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    viewBalanceRequest->sendRequest("post","http://192.168.1.8:22/postviewaccountbalance",jsonData);
+
+    delete viewBalanceRequest;
 }
 
-void Client::disconnected()
+void Client::Get_Account_Number()
 {
-    qInfo() << "Connection Closed...";
+    qDebug()<<"Get Account Number Function";
+
+    GetRequestSender* getAccountRequest = new GetRequestSender();
+
+    setHttpRequestSender(getAccountRequest);
+
+    getAccountRequest->sendRequest("get","http://192.168.1.8:22/getaccountnumber","");
+
+    delete getAccountRequest;
 }
 
-void Client::errorOccurred(QAbstractSocket::SocketError socketError)
+void Client::Get_Account_Number(QString username)
 {
-    qInfo() << "Error: " << socketError << " " << socket->errorString();
+    qDebug()<<"Get Account Number Function";
+
+    PostRequestSender* GetAccountRequest = new PostRequestSender();
+
+    setHttpRequestSender(GetAccountRequest);
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["username"] =  username;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    GetAccountRequest->sendRequest("post","http://192.168.1.8:22/postgetaccountnumber",jsonData);
+
+    delete GetAccountRequest;
 }
 
-void Client::hostFound()
+void Client::Make_Transaction(QByteArray accountnumber,int32_t transactionamount)
 {
-    qInfo() << "Server Host is Found";
+    qDebug()<<"Make Transaction Function";
 
+    PostRequestSender* MakeTransactionRequest = new PostRequestSender();
+
+    setHttpRequestSender(MakeTransactionRequest);
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["Accountnumber"] =  QString::fromUtf8(accountnumber);
+    jsonObject["transactionamount"] = transactionamount;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    MakeTransactionRequest->sendRequest("post","http://192.168.1.8:22/postmaketransaction",jsonData);
+
+    delete MakeTransactionRequest;
 }
 
-void Client::stateChanged(QAbstractSocket::SocketState socketState)
+void Client::Transfer_Amount(QByteArray fromaccountnumber,QByteArray toaccountnumber,int32_t transactionamount)
 {
-    qInfo() << "State: " << socketState;
+    qDebug()<<"Transfer Amount Function";
+
+    PostRequestSender* TransferAmountRequest = new PostRequestSender();
+
+    setHttpRequestSender(TransferAmountRequest);
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["fromaccountnumber"] =  QString::fromUtf8(fromaccountnumber);
+    jsonObject["toaccountnumber"] =  QString::fromUtf8(toaccountnumber);
+    jsonObject["transactionamount"] = transactionamount;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    TransferAmountRequest->sendRequest("post","http://192.168.1.8:22/posttransferamount",jsonData);
+
+    delete TransferAmountRequest;
 }
 
-void Client::disconnect()
+void Client::View_Bank_DataBase()
 {
-    socket->close();
-    socket->waitForDisconnected();   //to make it synchronous
+    qDebug()<<"View Bank DataBase Function";
+
+    GetRequestSender* viewDataBaseRequest = new GetRequestSender();
+
+    setHttpRequestSender(viewDataBaseRequest);
+
+    viewDataBaseRequest->sendRequest("get","http://192.168.1.8:22/getbankdatabase","");
+
+    delete viewDataBaseRequest;
 }
 
-void Client::readyRead()
+void Client::Create_User(QString User_Data)
 {
-    qInfo() << "Reading Data from Server";
-    QByteArray data= socket->readAll();
-    QTextStream in(&data);
-    while(!in.atEnd())
+    qDebug()<<"Create User Function";
+
+    PostRequestSender* CreateUserRequest = new PostRequestSender();
+
+    setHttpRequestSender(CreateUserRequest);
+
+    int usernameIndex = User_Data.indexOf("username:") + QString("username:").length();
+    int usernameEndIndex = User_Data.indexOf(",", usernameIndex);
+    QString username = User_Data.mid(usernameIndex, usernameEndIndex - usernameIndex);
+
+    // Extracting the password
+    int passwordIndex = User_Data.indexOf("password:") + QString("password:").length();
+    int passwordEndIndex = User_Data.indexOf(",", passwordIndex);
+    QString password = User_Data.mid(passwordIndex, passwordEndIndex - passwordIndex);
+
+    // Extracting the account number
+    int accountNumberIndex = User_Data.indexOf("accountnumber:") + QString("accountnumber:").length();
+    QString accountNumber = User_Data.mid(accountNumberIndex);
+
+
+
+    qDebug()<<username;
+    qDebug()<<password;
+    qDebug()<<accountNumber;
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["username"] = username;
+    jsonObject["password"] =  password;
+    jsonObject["Accountnumber"]=accountNumber;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    CreateUserRequest->sendRequest("post","http://192.168.1.8:22/postcreateuser",jsonData);
+
+    delete CreateUserRequest;
+}
+
+void Client::Update_User(QString Accountnumber,QString User_Data)
+{
+    qDebug()<<"Update User Function";
+
+    PostRequestSender* UpdateUserRequest = new PostRequestSender();
+
+    setHttpRequestSender(UpdateUserRequest);
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+
+    if(User_Data.contains("username:")&&User_Data.contains("password:"))
     {
-        QString line= in.readLine();
-        line.remove("\n");
-        line.remove("\r");
-        qDebug().noquote()<<line;
+
+        int usernameIndex = User_Data.indexOf("username:") + QString("username:").length();
+        int usernameEndIndex = User_Data.indexOf(",", usernameIndex);
+        QString username = User_Data.mid(usernameIndex, usernameEndIndex - usernameIndex);
+
+        // Extracting the password
+        int passwordIndex = User_Data.indexOf("password:") + QString("password:").length();
+        QString password = User_Data.mid(passwordIndex);
+
+        qDebug()<<username;
+        qDebug()<<password;
+
+        jsonObject["username"] = username;
+        jsonObject["password"] =  password;
     }
-   // qInfo() << "Data: " << socket->readAll();
+
+    else if(User_Data.contains("username:"))
+    {
+        int usernameIndex = User_Data.indexOf("username:") + QString("username:").length();
+        QString username = User_Data.mid(usernameIndex);
+        qDebug()<<username;
+
+        jsonObject["username"] = username;
+    }
+    else if(User_Data.contains("password:"))
+    {
+        // Extracting the password
+        int passwordIndex = User_Data.indexOf("password:") + QString("password:").length();
+        QString password = User_Data.mid(passwordIndex);
+        qDebug()<<password;
+
+        jsonObject["password"] = password;
+    }
+
+
+    jsonObject["Accountnumber"]=Accountnumber;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    UpdateUserRequest->sendRequest("post","http://192.168.1.8:22/postupdateuser",jsonData);
+
+    delete UpdateUserRequest;
 }
 
-void Client::get(QString path)
+void Client::Delete_User(QString Accountnumber)
 {
-    if (socket->waitForConnected()) {
-        // Send the GET request
-        QString getRequest = "GET " + path + " HTTP/1.1\r\n"
-                                             "Content-Type: application/json\r\n"
-                                             // "Host: " + serverAddress + "\r\n"
-                                             //   "Connection: close\r\n"
-                                             "\r\n";
-        socket->write(getRequest.toUtf8());
+    qDebug()<<"Delete User Function";
 
-        // Wait for the response
-        if (socket->waitForBytesWritten() && socket->waitForReadyRead()) {
-            // Read the response
-            //  QByteArray responseData = socket->readAll();
-            //  qDebug() << "Response: " << responseData;
-        }
-    }
-   // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
+    DeleteRequestSender* DeleteUserRequest = new DeleteRequestSender();
+
+    setHttpRequestSender(DeleteUserRequest);
+
+    // Create a JSON object
+    QJsonObject jsonObject;
+    jsonObject["Accountnumber"] =  Accountnumber;
+    QJsonDocument jsonDocument(jsonObject);
+
+    // Convert the JSON object to a QByteArray
+    QByteArray jsonData = jsonDocument.toJson();
+
+    DeleteUserRequest->sendRequest("delete","http://192.168.1.7:22/deleteuser",jsonData);
+
+    delete DeleteUserRequest;
 }
 
-void Client::post(QString path, QByteArray data)
+
+Client::~Client()
 {
-    if (socket->waitForConnected()) {
-        // Construct the request headers
-        QString requestHeaders = "POST " + path + " HTTP/1.1\r\n"
-                                                  //  "Host: " + serverAddress + "\r\n"
-                                                  "Content-Type: application/json\r\n"
-                                                  "Content-Length: " + QString::number(data.size()) + "\r\n"
-                                                                  //  "Connection: close\r\n"
-                                                                  "\r\n";
-
-        // Combine the request headers and data
-        QByteArray requestData = requestHeaders.toUtf8() + data;
-
-        // Send the request
-        socket->write(requestData);
-
-        // Wait for the response
-        if (socket->waitForBytesWritten() && socket->waitForReadyRead()) {
-            // Read the response
-            // QByteArray responseData = socket->readAll();
-            // qDebug() << "Response: " << responseData;
-        }
-    }
-   // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
-
-}
-
-void Client::put(QString path, QByteArray data)
-{
-    if (socket->waitForConnected()) {
-        // Construct the request headers
-        QString requestHeaders = "PUT " + path + " HTTP/1.1\r\n"
-                                                  //  "Host: " + serverAddress + "\r\n"
-                                                  "Content-Type: application/json\r\n"
-                                                  "Content-Length: " + QString::number(data.size()) + "\r\n"
-                                                                  //  "Connection: close\r\n"
-                                                                  "\r\n";
-
-        // Combine the request headers and data
-        QByteArray requestData = requestHeaders.toUtf8() + data;
-
-        // Send the request
-        socket->write(requestData);
-
-        // Wait for the response
-        if (socket->waitForBytesWritten() && socket->waitForReadyRead()) {
-            // Read the response
-            // QByteArray responseData = socket->readAll();
-            // qDebug() << "Response: " << responseData;
-        }
-    }
-   // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
-}
-
-void Client::Delete(QString path, QByteArray data)
-{
-    if (socket->waitForConnected()) {
-        // Construct the request headers
-        QString requestHeaders = "DELETE " + path + " HTTP/1.1\r\n"
-                                                  //  "Host: " + serverAddress + "\r\n"
-                                                  "Content-Type: application/json\r\n"
-                                                  "Content-Length: " + QString::number(data.size()) + "\r\n"
-                                                                  //  "Connection: close\r\n"
-                                                                  "\r\n";
-
-        // Combine the request headers and data
-        QByteArray requestData = requestHeaders.toUtf8() + data;
-
-        // Send the request
-        socket->write(requestData);
-
-        // Wait for the response
-        if (socket->waitForBytesWritten() && socket->waitForReadyRead()) {
-            // Read the response
-            // QByteArray responseData = socket->readAll();
-            // qDebug() << "Response: " << responseData;
-        }
-    }
-    // connect(socket,&QAbstractSocket::readyRead, this, &Client::readyRead);
-
+    delete activerequest;
 }
