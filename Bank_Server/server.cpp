@@ -70,6 +70,7 @@ MyServer::MyServer(QObject *parent)
 void MyServer::incomingConnection(qintptr socketDescriptor) {
 
    // qDebug() << socketDescriptor << " Connecting...";
+    qDebug()<<"new connection";
     Thread *worker = new Thread(socketDescriptor);
     QThread* thread = new QThread;
 
@@ -88,6 +89,8 @@ void MyServer::ReadRequest()
 {
 
     QTcpSocket *socket = qobject_cast<QTcpSocket*>(sender());
+
+    qDebug() << socket ;
 
     QByteArray requestData = socket->readAll();
     qDebug() << "Client request: " << requestData;
@@ -519,7 +522,7 @@ void MyServer::processPostRequestmaketransaction(QTcpSocket* socket, const QByte
     int32_t transactionAmount = jsonObject["transactionamount"].toInt();
 
     QFile databaseFile("DataBase.json");
-    if (!databaseFile.open(QIODevice::ReadOnly)) {
+    if (!databaseFile.open(QIODevice::ReadWrite)) {
         qDebug() << "Failed to open database file";
         return;
     }
@@ -539,8 +542,8 @@ void MyServer::processPostRequestmaketransaction(QTcpSocket* socket, const QByte
     int32_t balance = 0;
     bool transactionDone = false;
 
-    for (const QJsonValue& value : dataArray) {
-        QJsonObject dataObject = value.toObject();
+    for (int i = 0; i < dataArray.size(); ++i) {
+        QJsonObject dataObject = dataArray[i].toObject();
         QString dataAccountnumber = dataObject.value("Accountnumber").toString();
 
         if (dataAccountnumber == accountnumber) {
@@ -558,6 +561,8 @@ void MyServer::processPostRequestmaketransaction(QTcpSocket* socket, const QByte
             dataObject["balance"] = newBalance;
             qDebug() << dataObject.value("balance").toInt();
 
+            dataArray[i] = dataObject;
+
             response = "HTTP/1.0 200 OK\r\n\r\n";
             response += "true Transaction is done, New Balance is: " + QString::number(newBalance).toUtf8();
             transactionDone = true;
@@ -571,11 +576,23 @@ void MyServer::processPostRequestmaketransaction(QTcpSocket* socket, const QByte
         response += "Transaction data not found in the database";
     }
 
+    // Update the users array in the databaseObject
+    databaseObject["users"] = dataArray;
+
+    // Write the modified JSON back to the file
+    if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {  // Open the file in WriteOnly mode, truncating the existing content
+        qDebug() << "Failed to open database file for writing";
+        return;
+    }
+
+    QJsonDocument updatedDatabaseDoc(databaseObject);
+    databaseFile.write(updatedDatabaseDoc.toJson());
+    databaseFile.close();
+
     socket->write(response);
     socket->flush();
     socket->waitForBytesWritten();
 }
-
 void MyServer::processPostRequesttransferamount(QTcpSocket* socket, const QByteArray& requestData)
 {
     qDebug() << "processPostRequesttransferamount";
@@ -645,10 +662,10 @@ void MyServer::processPostRequesttransferamount(QTcpSocket* socket, const QByteA
     int32_t balancefrom = 0, balanceto = 0;
     bool transactionDone = false;
 
-    for (const QJsonValue& value : dataArray) {
-        QJsonObject dataObject = value.toObject();
+    for (int i = 0; i < dataArray.size(); ++i) {
+        QJsonObject dataObject = dataArray[i].toObject();
+        //QJsonObject dataObject = value.toObject();
         QString dataAccountnumber = dataObject.value("Accountnumber").toString();
-
         if (dataAccountnumber == fromaccountnumber) {
             qDebug() << "Data found";   // Data found in the database
             balancefrom = dataObject.value("balance").toInt();
@@ -656,17 +673,20 @@ void MyServer::processPostRequesttransferamount(QTcpSocket* socket, const QByteA
             if (transactionAmount > balancefrom) {
                 response = "HTTP/1.0 200 OK\r\n\r\n";
                 response += "False, Transaction can't be done: transaction amount is less than from account balance";
-                transactionDone = true;
+                //transactionDone = true;
                 break;
             } else {
-                for (const QJsonValue& value : dataArray) {
-                    QJsonObject dataObject = value.toObject();
+                for (int j = 0; j < dataArray.size(); ++j) {
+                    //QJsonObject dataObject = value.toObject();
+                    QJsonObject dataObject = dataArray[j].toObject();
                     QString dataAccountnumberto = dataObject.value("Accountnumber").toString();
 
                     if (dataAccountnumberto == toaccountnumber) {
                         balanceto = dataObject.value("balance").toInt();
                         qDebug() << balanceto;
                         dataObject["balance"] = balanceto + transactionAmount;
+                        dataArray[j] = dataObject;
+
                         qDebug() << "to balance is now ::" << dataObject["balance"];
                         break;
                     }
@@ -674,6 +694,7 @@ void MyServer::processPostRequesttransferamount(QTcpSocket* socket, const QByteA
             }
 
             dataObject["balance"] = balancefrom - transactionAmount;
+            dataArray[i] = dataObject;
             qDebug() << dataObject.value("balance").toInt();
             response = "HTTP/1.0 200 OK\r\n\r\n";
             response += "true Transaction is done ";
@@ -687,6 +708,19 @@ void MyServer::processPostRequesttransferamount(QTcpSocket* socket, const QByteA
         response = "HTTP/1.0 200 OK\r\n\r\n";
         response += "Transaction data not found in the database";
     }
+
+    // Update the users array in the databaseObject
+    databaseObject["users"] = dataArray;
+
+    // Write the modified JSON back to the file
+    if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {  // Open the file in WriteOnly mode, truncating the existing content
+        qDebug() << "Failed to open database file for writing";
+        return;
+    }
+
+    QJsonDocument updatedDatabaseDoc(databaseObject);
+    databaseFile.write(updatedDatabaseDoc.toJson());
+    databaseFile.close();
 
     socket->write(response);
     socket->flush();
@@ -797,38 +831,48 @@ void MyServer::processPostRequestcreateuser(QTcpSocket* socket, const QByteArray
     qDebug() << "AccountNumber:" << jsonObject["Accountnumber"].toString();
 
 
+    QFile databaseFile("DataBase.json");
+    if (!databaseFile.open(QIODevice::ReadWrite)) {
+        qDebug() << "Failed to open database file";
+        return;
+    }
+
+    QByteArray databaseData = databaseFile.readAll();
+    databaseFile.close();
+
+    QJsonDocument databaseDoc = QJsonDocument::fromJson(databaseData);
+    if (!databaseDoc.isObject()) {
+        qDebug() << "Invalid database file format";
+        return;
+    }
+
+    QJsonObject databaseObject = databaseDoc.object();
+    QJsonArray userArray = databaseObject.value("users").toArray();
+
+
+
     // Get the existing user array from the database
-    QJsonArray userArray = database["users"].toArray();
+   // QJsonArray userArray = database["users"].toArray();
 
     // Append the new user to the user array
     userArray.append(jsonObject);
 
     // Update the user array in the database
-    database["users"] = userArray;
+    databaseObject["users"] = userArray;
 
     // Create a JSON document from the updated database
-    QJsonDocument jsonDocument(database);
+    QJsonDocument jsonDocument(databaseObject);
 
     // Convert the JSON document to a QByteArray
     QByteArray jsonData = jsonDocument.toJson();
 
-    // Specify the file path to save the JSON data
-    QString filePath = "DataBase.json";
-
-    // Create a file object
-    QFile file(filePath);
-
-    // Open the file in write mode
-    if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Failed to open file for writing.";
+    // Write the modified JSON back to the file
+    if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {  // Open the file in WriteOnly mode, truncating the existing content
+        qDebug() << "Failed to open database file for writing";
         return;
     }
-
-    // Write the JSON data to the file
-    file.write(jsonData);
-
-    // Close the file
-    file.close();
+    databaseFile.write(jsonData);
+    databaseFile.close();
 
     response = "HTTP/1.0 200 OK\r\n\r\n";
     response += "User Created Successfully";
@@ -897,8 +941,9 @@ void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray
 
     bool updateDone = false;
 
-    for (QJsonValueRef valueRef : dataArray) {
-        QJsonObject dataObject = valueRef.toObject();
+
+    for (int i = 0; i < dataArray.size(); ++i) {
+        QJsonObject dataObject = dataArray[i].toObject();
         QString dataAccountNum = dataObject.value("Accountnumber").toString();
 
         if (dataAccountNum == accountNumber && dataObject["authority"] == "standard") {
@@ -908,13 +953,27 @@ void MyServer::processPostRequestupdateuser(QTcpSocket* socket, const QByteArray
             if (!password.isEmpty())
                 dataObject["password"] = password;
 
+            dataArray[i]=dataObject;
+
+            // Update the users array in the databaseObject
+            databaseObject["users"] = dataArray;
+
+            // Write the modified JSON back to the file
+            if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {  // Open the file in WriteOnly mode, truncating the existing content
+                qDebug() << "Failed to open database file for writing";
+                return;
+            }
+
+            QJsonDocument updatedDatabaseDoc(databaseObject);
+            databaseFile.write(updatedDatabaseDoc.toJson());
+            databaseFile.close();
+
             sendResponse(socket, "Update is done");
             qDebug() << "New update is " << dataObject["username"] << dataObject["password"];
             updateDone = true;
             break;
         }
     }
-
     if (!updateDone) {
         qDebug() << "Update cannot be done in the database";
         sendResponse(socket, "Update cannot be done in the database");
