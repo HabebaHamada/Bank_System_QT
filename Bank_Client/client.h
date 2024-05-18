@@ -1,38 +1,25 @@
 #ifndef CLIENT_H
 #define CLIENT_H
+#include "socket.h"
+#include "httprequestsender.h"
 
 #include <QObject>
-#include <QTcpSocket>
-#include <QNetworkReply>
-#include <QNetworkRequest>
+#include <QString>
 #include <QJsonObject>
 #include <QJsonDocument>
 
-class Client : public QObject
-{
+class Client:public QObject {
     Q_OBJECT
+private:
+    Socket socket;
+    HttpRequestSender* activerequest;
+
 public:
     Client();
     ~Client();
-
-signals:
+    void setHttpRequestSender(HttpRequestSender* sender);
 
 public slots:
-    void connectToHost(QString hostname, quint16 port);
-private slots:
-    void Connected();
-    void disconnected();
-    void errorOccurred(QAbstractSocket::SocketError socketError);
-    void hostFound();
-    void stateChanged(QAbstractSocket::SocketState socketState);
-    void disconnect();
-    void readyRead();
-public slots:
-    void get(QString path);
-    void post(QString path, QByteArray data);
-    void put(QString path, QByteArray data);
-    void Delete(QString path, QByteArray data);
-    /*Log in function*/
     void Log_in(QString User_name ,QString pass,QString authority);
     void View_Account_Balance(QByteArray Account_Number);
     void Get_Account_Number();
@@ -43,9 +30,7 @@ public slots:
     void Create_User(QString User_Data);
     void Update_User(QString Accountnumber,QString User_Data);
     void Delete_User(QString Accountnumber);
-
-private:
-    QTcpSocket *socket;
 };
+
 
 #endif // CLIENT_H
