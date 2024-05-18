@@ -831,38 +831,48 @@ void MyServer::processPostRequestcreateuser(QTcpSocket* socket, const QByteArray
     qDebug() << "AccountNumber:" << jsonObject["Accountnumber"].toString();
 
 
+    QFile databaseFile("DataBase.json");
+    if (!databaseFile.open(QIODevice::ReadWrite)) {
+        qDebug() << "Failed to open database file";
+        return;
+    }
+
+    QByteArray databaseData = databaseFile.readAll();
+    databaseFile.close();
+
+    QJsonDocument databaseDoc = QJsonDocument::fromJson(databaseData);
+    if (!databaseDoc.isObject()) {
+        qDebug() << "Invalid database file format";
+        return;
+    }
+
+    QJsonObject databaseObject = databaseDoc.object();
+    QJsonArray userArray = databaseObject.value("users").toArray();
+
+
+
     // Get the existing user array from the database
-    QJsonArray userArray = database["users"].toArray();
+   // QJsonArray userArray = database["users"].toArray();
 
     // Append the new user to the user array
     userArray.append(jsonObject);
 
     // Update the user array in the database
-    database["users"] = userArray;
+    databaseObject["users"] = userArray;
 
     // Create a JSON document from the updated database
-    QJsonDocument jsonDocument(database);
+    QJsonDocument jsonDocument(databaseObject);
 
     // Convert the JSON document to a QByteArray
     QByteArray jsonData = jsonDocument.toJson();
 
-    // Specify the file path to save the JSON data
-    QString filePath = "DataBase.json";
-
-    // Create a file object
-    QFile file(filePath);
-
-    // Open the file in write mode
-    if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Failed to open file for writing.";
+    // Write the modified JSON back to the file
+    if (!databaseFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {  // Open the file in WriteOnly mode, truncating the existing content
+        qDebug() << "Failed to open database file for writing";
         return;
     }
-
-    // Write the JSON data to the file
-    file.write(jsonData);
-
-    // Close the file
-    file.close();
+    databaseFile.write(jsonData);
+    databaseFile.close();
 
     response = "HTTP/1.0 200 OK\r\n\r\n";
     response += "User Created Successfully";
