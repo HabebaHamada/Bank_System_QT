@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
                 client.Log_in(username, password, "admin");
             }
             isLoggedIn = true;
+
         } else if (userInput.contains("Accountnumber", Qt::CaseInsensitive)) {
             if (role.contains("user", Qt::CaseInsensitive)) {
                 client.Get_Account_Number();
@@ -76,14 +77,74 @@ int main(int argc, char *argv[])
                 QString name = input.readLine().trimmed();
                 client.Get_Account_Number(name);
             }
+        } else if (userInput.contains("Accountbalance", Qt::CaseInsensitive)) {
+                qInfo() << "Enter Account number you want its Account balance:";
+                QString Accountnumber = input.readLine().trimmed();
+                client.View_Account_Balance(Accountnumber);
+
         } else if (userInput.contains("View Bank Database", Qt::CaseInsensitive)) {
                 client.View_Bank_DataBase();
+
+        } else if (userInput.contains("Make Transaction", Qt::CaseInsensitive)) {
+            qInfo() << "Enter The Account Number:";
+            QString Account = input.readLine().trimmed();
+            qInfo() << "Enter The money amount:";
+            int32_t transactionMoney = input.readLine().trimmed().toInt();
+            client.Make_Transaction(Account,transactionMoney);
+
+        } else if (userInput.contains("Transfer Amount", Qt::CaseInsensitive)) {
+            qInfo() << "Enter The Account Number you want to transfer from:";
+            QString Accountfrom = input.readLine().trimmed();
+            qInfo() << "Enter The Account Number you want to transfer to:";
+            QString Accountto = input.readLine().trimmed();
+            qInfo() << "Enter The money amount:";
+            int32_t transactionMoney = input.readLine().trimmed().toInt();
+            client.Transfer_Amount(Accountfrom,Accountto,transactionMoney);
+
+        } else if (userInput.contains("Deleteuser", Qt::CaseInsensitive)) {
+            qInfo() << "Enter Account number you want to delete:";
+            QString Accountnumber = input.readLine().trimmed();
+            client.Delete_User(Accountnumber);
+
+        } else if (userInput.contains("Createuser", Qt::CaseInsensitive)) {
+            qInfo() << "Enter new User data as a form of \n username:yourname,password:yourpassword,accountnumber:youraccountnumber";
+            QString data = input.readLine().trimmed();
+            client.Create_User(data);
+
+        } else if (userInput.contains("Updateuser", Qt::CaseInsensitive)) {
+
+            qInfo() << "Enter Account number you want to Update:";
+            QString Accountnumber = input.readLine().trimmed();
+            qInfo()<< "which data you want to update : 1.name \n2.Password\n3.both";
+            QString datatype=input.readLine().trimmed();
+            if(datatype.contains("name", Qt::CaseInsensitive))
+            {
+                qInfo() << "Enter new User name as a form of \n username:yournewname";
+                QString data = input.readLine().trimmed();
+                client.Update_User(Accountnumber,data);
+            }
+            else if(datatype.contains("password", Qt::CaseInsensitive))
+            {
+                qInfo() << "Enter new password as a form of \n password:yourpassword";
+                QString data = input.readLine().trimmed();
+                client.Update_User(Accountnumber,data);
+            }
+            else if(datatype.contains("both", Qt::CaseInsensitive))
+            {
+                qInfo() << "Enter new Data as a form of \n username:yournewname,password:yourpassword";
+                QString data = input.readLine().trimmed();
+                client.Update_User(Accountnumber,data);
+            }
+
         } else if (userInput.contains("help", Qt::CaseInsensitive)) {
             printHelp();
+
         } else if (userInput.contains("exit", Qt::CaseInsensitive)) {
             break; // Exit the loop and continue with program termination
+
         } else {
             qInfo() << "Invalid Command. Type 'help' to print the manual\n";
+
         }
     }
 
