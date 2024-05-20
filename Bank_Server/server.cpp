@@ -12,48 +12,8 @@ QByteArray Data_Base;
 QJsonObject userTable;
 QMap<QTcpSocket *,ClientData> clientmap;
 
-/*MyServer::MyServer(QObject *parent) :
-    QObject(parent)
-{
-    Data_Base=Create_DataBase(userTable);
-
-    //server = new QTcpServer(this);
-    connect(&server, &QTcpServer::newConnection, this, &MyServer::newConnection);
-
-    if(!server.listen(QHostAddress::Any, 22))
-    {
-        qDebug() << "Server could not start!";
-    }
-    else
-    {
-        qDebug() << "Server started!";
-    }
-}
-
-void MyServer::newConnection()
-{
-    QTcpSocket *socket = server.nextPendingConnection();
-
-    connect(socket, &QTcpSocket::readyRead, this, &MyServer::ReadRequest);
-
-    qDebug()<<"new connection";
-
-
-    // Disconnect the client
-    //socket->disconnectFromHost();
-    //socket->deleteLater();
-
-    //socket->write("hello client\r\n");
-    //socket->flush();
-
-    //socket->waitForBytesWritten(3000);
-
-    //socket->close();
-}
-*/
 MyServer::MyServer(QObject *parent)
 {
-    //connect(&server, &QTcpServer::newConnection, this, &Server::newConnection);
     Data_Base=Create_DataBase(userTable);
 
 
@@ -829,6 +789,20 @@ void MyServer::processPostRequestcreateuser(QTcpSocket* socket, const QByteArray
     qDebug() << "username:" << jsonObject["username"].toString();
     qDebug() << "Password:" << jsonObject["password"].toString();
     qDebug() << "AccountNumber:" << jsonObject["Accountnumber"].toString();
+
+    for(const auto& names:clientmap)
+    {
+        if(names.name==(jsonObject["username"].toString()))
+        {
+            response = "HTTP/1.0 200 OK\r\n\r\n";
+            response += "can't create user, name is used before\nTry another name";
+            socket->write(response);
+            socket->flush();
+            socket->waitForBytesWritten();
+            return;
+
+        }
+    }
 
 
     QFile databaseFile("DataBase.json");
