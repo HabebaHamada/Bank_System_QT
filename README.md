@@ -1,4 +1,4 @@
-Banking system using the client-server model.\n
+Banking system using the client-server model.
 Application was developed using the QT/C++ framework.
 The client-server interface is able to implement the following request/response pairs:Log
 in, Get Account number, View transaction history, Transfer Amount and View Bank DB.
